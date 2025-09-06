@@ -1,0 +1,12 @@
+room,wall_point,device_type,second_device_type
+roomAG2,101,pc,none
+roomAG2,102,pc,phone
+roomAG2,103,printer,none
+roomAG2,104,pc,phone
+roomA250,201,pc,phone
+roomA250,202,pc,phone
+roomA250,203,projector,none
+roomAG11,301,cam,none
+roomAG11,302,cam,none
+roomA110,401,pc,none
+roomA120,501,zero_client,none

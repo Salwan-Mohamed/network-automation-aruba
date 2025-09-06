@@ -1,0 +1,12 @@
+---
+# Mapping of switch IP addresses to the rooms they serve
+# Each switch can serve multiple rooms
+switch_mapping:
+  10.1.127.248: ["roomAG2", "roomAG11"]
+  10.1.127.247: ["roomAG5", "roomAG10"]
+  10.1.127.246: ["roomA110", "roomA120"]
+  10.1.127.245: ["roomA150", "roomA160"]
+  10.1.127.244: ["roomA210", "roomA220"]
+  10.1.127.243: ["roomA250", "roomA260"]
+  10.1.127.242: ["roomA310", "roomA320"]
+  10.1.127.241: ["roomA350", "roomA360"]

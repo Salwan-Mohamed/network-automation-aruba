@@ -1,0 +1,27 @@
+---
+# Mapping of room codes to human-readable interface descriptions
+# Used for interface naming and documentation
+interface_descriptions:
+  # AG Floor Rooms
+  roomAG2: "ROOM_AG2"
+  roomAG5: "ROOM_AG5"
+  roomAG10: "ROOM_AG10"
+  roomAG11: "Surveillance Cameras"
+  
+  # A100 Floor Rooms
+  roomA110: "ROOM_A110"
+  roomA120: "ROOM_A120"
+  roomA150: "ROOM_A150"
+  roomA160: "ROOM_A160"
+  
+  # A200 Floor Rooms
+  roomA210: "ROOM_A210"
+  roomA220: "ROOM_A220"
+  roomA250: "ROOM_A250"
+  roomA260: "ROOM_A260"
+  
+  # A300 Floor Rooms
+  roomA310: "ROOM_A310"
+  roomA320: "ROOM_A320"
+  roomA350: "ROOM_A350"
+  roomA360: "ROOM_A360"

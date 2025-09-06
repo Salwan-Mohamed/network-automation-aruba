@@ -1,0 +1,164 @@
+---
+- name: Resolve Switch Based on Room Number and Configure Aruba Switch Port
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - ../vars/switch_mapping.yml
+    - ../vars/interface_descriptions.yml
+    - ../vars/vlan_mapping.yml
+    - ../vars/wall_point_mapping.yml
+
+  tasks:
+    - name: Validate required variables
+      fail:
+        msg: "Missing required variable: {{ item }}"
+      when: vars[item] is not defined or vars[item] == ""
+      loop:
+        - room
+        - wall_point
+        - device_type
+
+    - name: Find Switch for Given Room
+      set_fact:
+        switch_name: "{{ item.key }}"
+      loop: "{{ switch_mapping | dict2items }}"
+      when: room in item.value
+
+    - name: Fail if No Matching Switch is Found
+      fail:
+        msg: "No switch found for room {{ room }}. Available rooms: {{ switch_mapping.values() | flatten | unique | sort }}"
+      when: switch_name is not defined
+
+    - name: Convert Wall Point to Switch Port
+      set_fact:
+        port_number: "{{ wall_point_mapping[wall_point] }}"
+      when: wall_point is defined
+
+    - name: Fail if Wall Point Not Found
+      fail:
+        msg: "Wall point {{ wall_point }} not found in mapping. Check wall_point_mapping.yml"
+      when: port_number is not defined
+
+    - name: Validate Device Type
+      fail:
+        msg: "Invalid device type '{{ device_type }}'. Valid types are: {{ vlan_mapping.keys() | list }}"
+      when: device_type is defined and device_type not in vlan_mapping
+
+    - name: Get Interface Description
+      set_fact:
+        interface_description: "{{ interface_descriptions[room] | default(room) }}"
+
+    - name: Display Configuration Summary
+      debug:
+        msg:
+          - "Configuration Summary:"
+          - "  Switch: {{ switch_name }}"
+          - "  Port: {{ port_number }}"
+          - "  Room: {{ room }}"
+          - "  Wall Point: {{ wall_point }}"
+          - "  Primary Device: {{ device_type }}"
+          - "  Secondary Device: {{ second_device_type | default('none') }}"
+          - "  Interface Description: {{ interface_description }}"
+
+    - name: Add Resolved Switch to Inventory
+      add_host:
+        name: "{{ switch_name }}"
+        groups: dynamic_switches
+        ansible_host: "{{ switch_name }}"
+        ansible_port_number: "{{ port_number }}"
+        interface_description: "{{ interface_description }}"
+        ansible_device_type: "{{ device_type }}"
+        ansible_second_device_type: "{{ second_device_type | default('none') }}"
+
+- name: Configure Aruba Switch Port Based on Device Type
+  hosts: dynamic_switches
+  gather_facts: no
+  vars_files:
+    - ../vars/vlan_mapping.yml
+
+  tasks:
+    - name: Reset interface to default configuration
+      arubanetworks.aos.aos_config:
+        lines:
+          - "default interface {{ hostvars[inventory_hostname]['ansible_port_number'] }}"
+
+    - name: Configure interface for phone only (Case 1)
+      when: hostvars[inventory_hostname]['ansible_device_type'] == "phone"
+      block:
+        - name: Configure phone interface settings
+          arubanetworks.aos.aos_config:
+            lines:
+              - "interface {{ hostvars[inventory_hostname]['ansible_port_number'] }}"
+              - "   name \"{{ hostvars[inventory_hostname]['interface_description'] }}\""
+              - "   tagged vlan {{ vlan_mapping.phone }}"
+              - "   speed-duplex auto"
+              - "   exit"
+        
+        - name: Configure port security for phone
+          arubanetworks.aos.aos_config:
+            lines:
+              - "port-security {{ hostvars[inventory_hostname]['ansible_port_number'] }} address-limit 1 learn-mode static action send-disable"
+
+    - name: Configure interface for non-phone devices (Case 2)
+      when:
+        - hostvars[inventory_hostname]['ansible_device_type'] != "phone"
+        - hostvars[inventory_hostname]['ansible_device_type'] != "none"
+        - hostvars[inventory_hostname]['ansible_second_device_type'] == "none"
+      block:
+        - name: Configure non-phone device interface settings
+          arubanetworks.aos.aos_config:
+            lines:
+              - "interface {{ hostvars[inventory_hostname]['ansible_port_number'] }}"
+              - "   name \"{{ hostvars[inventory_hostname]['interface_description'] }}\""
+              - "   untagged vlan {{ vlan_mapping[hostvars[inventory_hostname]['ansible_device_type']] }}"
+              - "   speed-duplex auto"
+              - "   exit"
+        
+        - name: Configure port security for non-phone device
+          arubanetworks.aos.aos_config:
+            lines:
+              - "port-security {{ hostvars[inventory_hostname]['ansible_port_number'] }} address-limit 1 learn-mode static action send-disable"
+
+    - name: Configure interface for device with phone (Case 3)
+      when:
+        - hostvars[inventory_hostname]['ansible_second_device_type'] == "phone"
+      block:
+        - name: Configure device with phone interface settings
+          arubanetworks.aos.aos_config:
+            lines:
+              - "interface {{ hostvars[inventory_hostname]['ansible_port_number'] }}"
+              - "   name \"{{ hostvars[inventory_hostname]['interface_description'] }}\""
+              - "   untagged vlan {{ vlan_mapping[hostvars[inventory_hostname]['ansible_device_type']] }}"
+              - "   tagged vlan {{ vlan_mapping.phone }}"
+              - "   speed-duplex auto"
+              - "   exit"
+        
+        - name: Configure port security for device with phone
+          arubanetworks.aos.aos_config:
+            lines:
+              - "port-security {{ hostvars[inventory_hostname]['ansible_port_number'] }} address-limit 2 learn-mode static action send-disable"
+
+    - name: Configure interface for disabled port (Case 4)
+      when: 
+        - hostvars[inventory_hostname]['ansible_device_type'] == "none"
+      block:
+        - name: Configure disabled interface settings
+          arubanetworks.aos.aos_config:
+            lines:
+              - "interface {{ hostvars[inventory_hostname]['ansible_port_number'] }}"
+              - "   name \"{{ hostvars[inventory_hostname]['interface_description'] }} - DISABLED\""
+              - "   speed-duplex auto"
+              - "   disable"
+              - "   exit"
+
+    - name: Save configuration
+      arubanetworks.aos.aos_config:
+        save_when: always
+
+    - name: Display configuration result
+      debug:
+        msg:
+          - "Configuration completed successfully!"
+          - "Switch: {{ inventory_hostname }}"
+          - "Port: {{ hostvars[inventory_hostname]['ansible_port_number'] }}"
+          - "Device Type: {{ hostvars[inventory_hostname]['ansible_device_type'] }}"

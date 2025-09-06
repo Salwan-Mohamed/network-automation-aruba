@@ -1,0 +1,11 @@
+---
+# Mapping of device types to VLAN IDs
+# Used to automatically assign VLANs based on device type
+vlan_mapping:
+  phone: 528
+  cam: 536
+  printer: 531
+  pc: 80
+  projector: 533
+  zero_client: 541
+  none: shutdown
