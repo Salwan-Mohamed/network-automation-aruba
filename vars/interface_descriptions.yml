@@ -3,7 +3,7 @@
 # Used for interface naming and documentation
 interface_descriptions:
   # AG Floor Rooms
-  roomAG2: "ROOM_AG2"
+  N120: "N120_Lecture_Hall"
   roomAG5: "ROOM_AG5"
   roomAG10: "ROOM_AG10"
   roomAG11: "Surveillance Cameras"
