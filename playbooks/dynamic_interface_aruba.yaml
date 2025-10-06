@@ -526,7 +526,7 @@
     # CASE 4: DISABLED PORT CONFIGURATION
     ###########################################################################
     # Scenario: Port is not in use / should be administratively disabled
-    #           Used for unused ports, decomissioned jacks, or security purposes
+    #           Used for unused ports, decommissioned jacks, or security purposes
     #
     # Configuration Applied:
     # - VLAN: None (all VLANs removed - not shown but implied)
